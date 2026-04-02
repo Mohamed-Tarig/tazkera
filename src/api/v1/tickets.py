@@ -145,3 +145,74 @@ async def classify_existing_ticket(
         "status": "classified",
         "classification": cls,
     }
+
+@router.post("/tickets/{ticket_id}/suggest-response")
+async def suggest_response(
+    ticket_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+):
+    """Generate a RAG-powered response suggestion for a ticket."""
+    from src.models.ticket import TicketClassification
+    from src.services.embeddings import get_embedding
+    from src.services.rag import find_similar_articles, find_similar_tickets, generate_response
+
+    ticket = await session.get(Ticket, ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    # Get classification if exists
+    cls_result = await session.execute(
+        select(TicketClassification)
+        .where(TicketClassification.ticket_id == ticket_id)
+        .order_by(TicketClassification.classified_at.desc())
+    )
+    classification_row = cls_result.scalars().first()
+
+    classification = {}
+    if classification_row:
+        classification = {
+            "request_type": classification_row.predicted_type,
+            "department": classification_row.predicted_department,
+            "priority": classification_row.predicted_priority,
+        }
+
+    # Generate embedding for this ticket
+    query_text = f"{ticket.subject}\n{ticket.description}"
+    query_embedding = get_embedding(query_text)
+
+    # Retrieve similar KB articles and tickets
+    articles = await find_similar_articles(
+        session=session,
+        query_embedding=query_embedding,
+        domain_id=ticket.domain_id,
+        limit=5,
+    )
+
+    similar_tickets = await find_similar_tickets(
+        session=session,
+        query_embedding=query_embedding,
+        domain_id=ticket.domain_id,
+        exclude_ticket_id=str(ticket_id),
+        limit=3,
+    )
+
+    # Generate response
+    result = await generate_response(
+        subject=ticket.subject,
+        description=ticket.description,
+        classification=classification,
+        articles=articles,
+        domain_id=ticket.domain_id,
+    )
+
+    return {
+        "ticket_id": str(ticket.id),
+        "suggestion": result,
+        "context": {
+            "articles_used": [
+                {"title": a["title"], "category": a["category"], "similarity": a["similarity"]}
+                for a in articles
+            ],
+            "similar_tickets": similar_tickets,
+        },
+    }

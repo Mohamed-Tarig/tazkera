@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     azure_openai_embedding_deployment: str = "text-embedding-3-small"
     azure_openai_api_version: str = "2024-08-01-preview"
 
+    # Azure OpenAI - Embeddings (separate resource)
+    azure_openai_embedding_endpoint: str = ""
+    azure_openai_embedding_key: str = ""
+
     # App
     domain_config: str = "sfda"
     log_level: str = "INFO"
