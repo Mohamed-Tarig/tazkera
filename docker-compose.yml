@@ -1,0 +1,15 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: tazkera-db
+    environment:
+      POSTGRES_DB: tazkera
+      POSTGRES_USER: tazkera
+      POSTGRES_PASSWORD: tazkera_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
