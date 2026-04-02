@@ -93,3 +93,55 @@ async def get_ticket(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     return ticket
+
+@router.post("/tickets/{ticket_id}/classify")
+async def classify_existing_ticket(
+    ticket_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+):
+    """Run the intake pipeline on an existing ticket."""
+    ticket = await session.get(Ticket, ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    from src.models.ticket import TicketClassification
+    from src.workflows.intake import intake_graph
+
+    # Run the pipeline
+    result = intake_graph.invoke({
+        "ticket_id": str(ticket.id),
+        "domain_id": ticket.domain_id,
+        "subject": ticket.subject,
+        "description": ticket.description,
+        "custom_fields": ticket.custom_fields or {},
+        "classification": {},
+        "status": "",
+        "error": "",
+    })
+
+    if result["status"] != "routed":
+        raise HTTPException(status_code=422, detail=result.get("error", "Pipeline failed"))
+
+    # Save classification
+    cls = result["classification"]
+    classification = TicketClassification(
+        ticket_id=ticket.id,
+        domain_id=ticket.domain_id,
+        predicted_type=cls["request_type"],
+        predicted_department=cls["department"],
+        predicted_priority=cls["priority"],
+        confidence_score=cls["confidence"],
+        reasoning=cls.get("reasoning"),
+        model_version=cls.get("model_version", "unknown"),
+    )
+    session.add(classification)
+
+    # Update ticket status
+    ticket.status = "classified"
+    await session.commit()
+
+    return {
+        "ticket_id": str(ticket.id),
+        "status": "classified",
+        "classification": cls,
+    }
