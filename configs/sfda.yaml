@@ -1,0 +1,124 @@
+domain:
+  id: sfda
+  name: Saudi Food & Drug Authority
+  name_ar: هيئة الغذاء والدواء
+  language: ar
+  timezone: Asia/Riyadh
+
+ticket_fields:
+  establishment_type:
+    label_ar: نوع المنشأة
+    values:
+      - id: warehouse
+        label_ar: مستودع
+      - id: factory
+        label_ar: مصنع
+      - id: retail
+        label_ar: محل تجاري
+      - id: importer
+        label_ar: مستورد
+
+  product_type:
+    label_ar: نوع المنتج
+    values:
+      - id: food
+        label_ar: غذاء
+      - id: drug
+        label_ar: دواء
+      - id: medical_device
+        label_ar: أجهزة طبية
+      - id: cosmetics
+        label_ar: مستحضرات تجميل
+      - id: feed
+        label_ar: أعلاف
+      - id: pesticides
+        label_ar: مبيدات
+      - id: tobacco
+        label_ar: تبغ
+
+  request_type:
+    label_ar: نوع الطلب
+    values:
+      - id: inquiry
+        label_ar: استفسار
+      - id: complaint
+        label_ar: شكوى
+      - id: clearance_objection
+        label_ar: اعتراض على فسح
+      - id: meeting_request
+        label_ar: طلب اجتماع
+      - id: review_request
+        label_ar: إعادة نظر
+
+departments:
+  - id: clearance
+    label_ar: فسح
+    handles:
+      - clearance_objection
+      - review_request
+  - id: inspection
+    label_ar: تفتيش
+    handles:
+      - complaint
+  - id: registration
+    label_ar: تسجيل
+    handles:
+      - inquiry
+  - id: labs
+    label_ar: مختبرات
+    handles:
+      - inquiry
+      - complaint
+  - id: consumer_complaints
+    label_ar: شكاوى المستهلك
+    handles:
+      - complaint
+
+routing_rules:
+  - condition: "request_type == 'clearance_objection'"
+    department: clearance
+    priority: high
+  - condition: "request_type == 'complaint' and product_type == 'drug'"
+    department: inspection
+    priority: urgent
+  - condition: "request_type == 'complaint' and product_type == 'food'"
+    department: consumer_complaints
+    priority: high
+  - condition: "request_type == 'inquiry'"
+    department: registration
+    priority: medium
+
+classification_prompt: |
+  أنت مصنّف تذاكر لهيئة الغذاء والدواء السعودية.
+  صنّف التذكرة التالية:
+
+  العنوان: {subject}
+  التفاصيل: {description}
+  نوع المنشأة: {establishment_type}
+  نوع المنتج: {product_type}
+
+  الأنواع المتاحة: {request_types}
+  الأقسام المتاحة: {departments}
+
+  أرجع JSON فقط:
+  {{
+    "request_type": "...",
+    "department": "...",
+    "priority": "low | medium | high | urgent",
+    "confidence": 0.0-1.0,
+    "reasoning": "شرح مختصر"
+  }}
+
+priorities:
+  - id: low
+    label_ar: منخفضة
+    sla_hours: 72
+  - id: medium
+    label_ar: متوسطة
+    sla_hours: 48
+  - id: high
+    label_ar: عالية
+    sla_hours: 24
+  - id: urgent
+    label_ar: عاجلة
+    sla_hours: 4
