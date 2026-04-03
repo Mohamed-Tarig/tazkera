@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tazkera — AI Ticket Intelligence</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #f8f7f4;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f0ec;
+            --text: #1a1a1a;
+            --text-2: #5c5c5c;
+            --text-3: #8c8c8c;
+            --border: #e5e3de;
+            --accent: #0f6e56;
+            --accent-light: #e1f5ee;
+            --accent-2: #534ab7;
+            --accent-2-light: #eeedfe;
+            --coral: #d85a30;
+            --coral-light: #faece7;
+            --amber: #ba7517;
+            --amber-light: #faeeda;
+            --red: #a32d2d;
+            --red-light: #fcebeb;
+            --blue: #185fa5;
+            --blue-light: #e6f1fb;
+        }
+        body {
+            font-family: 'IBM Plex Sans Arabic', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .app { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+        /* Header */
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border);
+        }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .header h1 span { color: var(--accent); }
+        .header-actions { display: flex; gap: 8px; }
+
+        /* Stats */
+        .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 28px; }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 16px 20px;
+        }
+        .stat-label { font-size: 12px; color: var(--text-3); margin-bottom: 4px; }
+        .stat-value { font-size: 28px; font-weight: 600; }
+        .stat-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--bg-card); color: var(--text); font-family: inherit;
+            font-size: 13px; cursor: pointer; transition: all 0.15s;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn:hover { background: var(--bg-hover); }
+        .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Badge */
+        .badge {
+            display: inline-block; padding: 3px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 500;
+        }
+        .badge-new { background: var(--blue-light); color: var(--blue); }
+        .badge-classified { background: var(--accent-2-light); color: var(--accent-2); }
+        .badge-routed { background: var(--accent-light); color: var(--accent); }
+        .badge-urgent { background: var(--red-light); color: var(--red); }
+        .badge-high { background: var(--coral-light); color: var(--coral); }
+        .badge-medium { background: var(--amber-light); color: var(--amber); }
+        .badge-low { background: var(--bg-hover); color: var(--text-3); }
+
+        /* Table */
+        .ticket-table {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden;
+        }
+        .table-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+        }
+        .table-header h2 { font-size: 16px; font-weight: 500; }
+        .search-input {
+            padding: 7px 14px; border: 1px solid var(--border); border-radius: 8px;
+            font-family: inherit; font-size: 13px; width: 260px;
+            background: var(--bg); outline: none;
+        }
+        .search-input:focus { border-color: var(--accent); }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: right; padding: 10px 20px; font-size: 11px;
+            color: var(--text-3); font-weight: 500; text-transform: uppercase;
+            letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
+        }
+        td {
+            padding: 12px 20px; font-size: 13px; border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--bg-hover); cursor: pointer; }
+        .ticket-subject { font-weight: 500; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ticket-meta { color: var(--text-3); font-size: 11px; }
+
+        /* Filters */
+        .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-btn {
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+            background: var(--bg-card); font-family: inherit; font-size: 12px;
+            cursor: pointer; color: var(--text-2); transition: all 0.15s;
+        }
+        .filter-btn:hover { border-color: var(--accent); }
+        .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Detail Panel */
+        .detail-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.3); z-index: 100;
+            display: flex; justify-content: flex-start;
+        }
+        .detail-panel {
+            width: 640px; background: var(--bg-card); height: 100%;
+            overflow-y: auto; box-shadow: -4px 0 24px rgba(0,0,0,0.1);
+            padding: 32px;
+        }
+        .detail-close {
+            background: none; border: none; font-size: 24px;
+            cursor: pointer; color: var(--text-3); padding: 4px;
+        }
+        .detail-section { margin-top: 24px; }
+        .detail-section h3 {
+            font-size: 13px; color: var(--text-3); font-weight: 500;
+            margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .detail-field { margin-bottom: 12px; }
+        .detail-field label { display: block; font-size: 11px; color: var(--text-3); margin-bottom: 2px; }
+        .detail-field p { font-size: 14px; }
+        .detail-description {
+            background: var(--bg); border-radius: 8px; padding: 14px;
+            font-size: 13px; line-height: 1.8; white-space: pre-wrap;
+        }
+
+        /* Classification result */
+        .classification-card {
+            background: var(--accent-2-light); border-radius: 10px;
+            padding: 16px; margin-top: 12px;
+        }
+        .classification-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+        }
+        .cls-item label { font-size: 11px; color: var(--accent-2); display: block; }
+        .cls-item p { font-size: 14px; font-weight: 500; }
+        .cls-reasoning {
+            margin-top: 10px; font-size: 12px; color: var(--text-2);
+            border-top: 1px solid rgba(83,74,183,0.15); padding-top: 10px;
+        }
+
+        /* Response suggestion */
+        .response-card {
+            background: var(--accent-light); border-radius: 10px;
+            padding: 16px; margin-top: 12px;
+        }
+        .response-text {
+            font-size: 13px; line-height: 1.9; white-space: pre-wrap;
+        }
+        .response-meta {
+            margin-top: 10px; font-size: 11px; color: var(--accent);
+            border-top: 1px solid rgba(15,110,86,0.15); padding-top: 10px;
+            display: flex; gap: 16px; flex-wrap: wrap;
+        }
+        .articles-list {
+            margin-top: 10px; font-size: 12px;
+        }
+        .article-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 0; border-bottom: 1px solid rgba(15,110,86,0.1);
+        }
+        .article-item:last-child { border-bottom: none; }
+        .similarity-bar {
+            width: 60px; height: 4px; background: rgba(15,110,86,0.15);
+            border-radius: 2px; overflow: hidden;
+        }
+        .similarity-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+
+        /* Loading */
+        .spinner {
+            display: inline-block; width: 16px; height: 16px;
+            border: 2px solid var(--border); border-top-color: var(--accent);
+            border-radius: 50%; animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Pagination */
+        .pagination {
+            display: flex; justify-content: center; gap: 4px;
+            padding: 16px; border-top: 1px solid var(--border);
+        }
+
+        /* Odoo status */
+        .odoo-bar {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px 20px; margin-bottom: 16px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .odoo-status { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+        .dot-green { background: var(--accent); }
+        .dot-red { background: var(--red); }
+        .dot-gray { background: var(--text-3); }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: var(--text); color: white; padding: 12px 24px;
+            border-radius: 10px; font-size: 13px; z-index: 200;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(10px); } }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+const API = window.location.origin + '/api/v1';
+
+// ── Helpers ──
+const fetcher = async (url, opts = {}) => {
+    const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    if (!r.ok) throw new Error(`${r.status}`);
+    return r.json();
+};
+
+const priorityAr = { urgent: 'عاجلة', high: 'عالية', medium: 'متوسطة', low: 'منخفضة' };
+const statusAr = { new: 'جديدة', classified: 'مصنّفة', routed: 'موجّهة', in_progress: 'قيد المعالجة', resolved: 'محلولة', closed: 'مغلقة' };
+const deptAr = { clearance: 'فسح', inspection: 'تفتيش', registration: 'تسجيل', labs: 'مختبرات', consumer_complaints: 'شكاوى المستهلك' };
+const typeAr = { inquiry: 'استفسار', complaint: 'شكوى', clearance_objection: 'اعتراض على فسح', meeting_request: 'طلب اجتماع', review_request: 'إعادة نظر' };
+
+function Badge({ type, value }) {
+    const cls = type === 'status' ? `badge-${value}` : `badge-${value}`;
+    const label = type === 'status' ? (statusAr[value] || value) : (priorityAr[value] || value);
+    return <span className={`badge ${cls}`}>{label}</span>;
+}
+
+// ── Toast ──
+function Toast({ message, onClose }) {
+    useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, []);
+    return <div className="toast">{message}</div>;
+}
+
+// ── Stats Row ──
+function StatsRow({ tickets }) {
+    const total = tickets.length;
+    const newCount = tickets.filter(t => t.status === 'new').length;
+    const classified = tickets.filter(t => t.status === 'classified').length;
+    const routed = tickets.filter(t => t.status === 'routed').length;
+    const urgent = tickets.filter(t => {
+        const cf = t.custom_fields || {};
+        return cf.predicted_priority === 'urgent' || cf.priority === 'urgent';
+    }).length;
+
+    return (
+        <div className="stats">
+            <div className="stat-card">
+                <div className="stat-label">إجمالي التذاكر</div>
+                <div className="stat-value">{total}</div>
+            </div>
+            <div className="stat-card">
+                <div className="stat-label">جديدة</div>
+                <div className="stat-value" style={{color: 'var(--blue)'}}>{newCount}</div>
+            </div>
+            <div className="stat-card">
+                <div className="stat-label">مصنّفة</div>
+                <div className="stat-value" style={{color: 'var(--accent-2)'}}>{classified}</div>
+            </div>
+            <div className="stat-card">
+                <div className="stat-label">موجّهة</div>
+                <div className="stat-value" style={{color: 'var(--accent)'}}>{routed}</div>
+            </div>
+            <div className="stat-card">
+                <div className="stat-label">عاجلة</div>
+                <div className="stat-value" style={{color: 'var(--red)'}}>{urgent}</div>
+            </div>
+        </div>
+    );
+}
+
+// ── Detail Panel ──
+function DetailPanel({ ticket, onClose, onUpdate }) {
+    const [classification, setClassification] = useState(null);
+    const [response, setResponse] = useState(null);
+    const [classifying, setClassifying] = useState(false);
+    const [suggesting, setSuggesting] = useState(false);
+
+    const doClassify = async () => {
+        setClassifying(true);
+        try {
+            const res = await fetcher(`${API}/tickets/${ticket.id}/classify`, { method: 'POST' });
+            setClassification(res.classification);
+            onUpdate();
+        } catch (e) { alert('Classification failed: ' + e.message); }
+        setClassifying(false);
+    };
+
+    const doSuggest = async () => {
+        setSuggesting(true);
+        try {
+            const res = await fetcher(`${API}/tickets/${ticket.id}/suggest-response`, { method: 'POST' });
+            setResponse(res);
+        } catch (e) { alert('Response generation failed: ' + e.message); }
+        setSuggesting(false);
+    };
+
+    const cf = ticket.custom_fields || {};
+
+    return (
+        <div className="detail-overlay" onClick={onClose}>
+            <div className="detail-panel" onClick={e => e.stopPropagation()}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
+                    <div>
+                        <div style={{fontSize:11, color:'var(--text-3)', marginBottom:4}}>{ticket.ticket_number}</div>
+                        <h2 style={{fontSize:18, fontWeight:600, marginBottom:8}}>{ticket.subject}</h2>
+                        <div style={{display:'flex', gap:6}}>
+                            <Badge type="status" value={ticket.status} />
+                        </div>
+                    </div>
+                    <button className="detail-close" onClick={onClose}>✕</button>
+                </div>
+
+                <div className="detail-section">
+                    <h3>التفاصيل</h3>
+                    <div className="detail-description">{ticket.description}</div>
+                </div>
+
+                <div className="detail-section">
+                    <h3>معلومات التذكرة</h3>
+                    <div className="classification-grid">
+                        <div className="detail-field">
+                            <label>مقدّم الطلب</label>
+                            <p>{ticket.submitter_name || '—'}</p>
+                        </div>
+                        <div className="detail-field">
+                            <label>البريد</label>
+                            <p>{ticket.submitter_email || '—'}</p>
+                        </div>
+                        <div className="detail-field">
+                            <label>المصدر</label>
+                            <p>{ticket.source_system}</p>
+                        </div>
+                        <div className="detail-field">
+                            <label>نوع المنشأة</label>
+                            <p>{cf.establishment_type || '—'}</p>
+                        </div>
+                        <div className="detail-field">
+                            <label>نوع المنتج</label>
+                            <p>{cf.product_type || '—'}</p>
+                        </div>
+                        <div className="detail-field">
+                            <label>التاريخ</label>
+                            <p>{new Date(ticket.created_at).toLocaleDateString('ar-SA')}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Classification */}
+                <div className="detail-section">
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                        <h3>التصنيف الذكي</h3>
+                        <button className="btn btn-sm btn-primary" onClick={doClassify} disabled={classifying}>
+                            {classifying ? <><span className="spinner"></span> يصنّف...</> : 'صنّف الآن'}
+                        </button>
+                    </div>
+                    {classification && (
+                        <div className="classification-card">
+                            <div className="classification-grid">
+                                <div className="cls-item">
+                                    <label>نوع الطلب</label>
+                                    <p>{typeAr[classification.request_type] || classification.request_type}</p>
+                                </div>
+                                <div className="cls-item">
+                                    <label>القسم</label>
+                                    <p>{deptAr[classification.department] || classification.department}</p>
+                                </div>
+                                <div className="cls-item">
+                                    <label>الأولوية</label>
+                                    <p>{priorityAr[classification.priority] || classification.priority}</p>
+                                </div>
+                                <div className="cls-item">
+                                    <label>نسبة الثقة</label>
+                                    <p>{Math.round(classification.confidence * 100)}%</p>
+                                </div>
+                            </div>
+                            {classification.reasoning && (
+                                <div className="cls-reasoning">💡 {classification.reasoning}</div>
+                            )}
+                            {classification.routed_by && (
+                                <div className="cls-reasoning">
+                                    التوجيه بواسطة: {classification.routed_by === 'rule' ? '📋 قاعدة ثابتة' : '🤖 الذكاء الاصطناعي'}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Response Suggestion */}
+                <div className="detail-section">
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                        <h3>الرد المقترح (RAG)</h3>
+                        <button className="btn btn-sm" onClick={doSuggest} disabled={suggesting}
+                                style={suggesting ? {} : {background:'var(--accent-light)', color:'var(--accent)', borderColor:'var(--accent)'}}>
+                            {suggesting ? <><span className="spinner"></span> يولّد...</> : 'اقترح رد'}
+                        </button>
+                    </div>
+                    {response && (
+                        <div className="response-card">
+                            <div className="response-text">{response.suggestion.response_text}</div>
+                            <div className="response-meta">
+                                <span>الثقة: {Math.round(response.suggestion.confidence * 100)}%</span>
+                                <span>المراجع: {response.suggestion.articles_retrieved}</span>
+                                {response.suggestion.needs_human_review && (
+                                    <span style={{color:'var(--coral)'}}>⚠️ يحتاج مراجعة بشرية</span>
+                                )}
+                            </div>
+                            {response.context && response.context.articles_used && (
+                                <div className="articles-list" style={{marginTop:12}}>
+                                    <div style={{fontSize:11, color:'var(--accent)', marginBottom:6, fontWeight:500}}>المراجع المستخدمة:</div>
+                                    {response.context.articles_used.map((a, i) => (
+                                        <div className="article-item" key={i}>
+                                            <span>{a.title}</span>
+                                            <div style={{display:'flex', alignItems:'center', gap:6}}>
+                                                <span style={{fontSize:10, color:'var(--text-3)'}}>{Math.round(a.similarity * 100)}%</span>
+                                                <div className="similarity-bar">
+                                                    <div className="similarity-fill" style={{width: `${a.similarity * 100}%`}}></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Main App ──
+function App() {
+    const [tickets, setTickets] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [selected, setSelected] = useState(null);
+    const [toast, setToast] = useState(null);
+    const [odooStatus, setOdooStatus] = useState('checking');
+    const [syncing, setSyncing] = useState(false);
+
+    const loadTickets = useCallback(async () => {
+        try {
+            const data = await fetcher(`${API}/tickets?domain=sfda&limit=100`);
+            setTickets(data);
+        } catch (e) { console.error(e); }
+        setLoading(false);
+    }, []);
+
+    const checkOdoo = async () => {
+        try {
+            await fetcher(`${API}/odoo/health`);
+            setOdooStatus('connected');
+        } catch { setOdooStatus('disconnected'); }
+    };
+
+    useEffect(() => { loadTickets(); checkOdoo(); }, []);
+
+    const syncFromOdoo = async () => {
+        setSyncing(true);
+        try {
+            const result = await fetcher(`${API}/odoo/sync-in`, { method: 'POST' });
+            setToast(`تم سحب ${result.length} تذكرة من Odoo`);
+            loadTickets();
+        } catch (e) { setToast('فشل السحب من Odoo'); }
+        setSyncing(false);
+    };
+
+    // Filtered tickets
+    const filtered = tickets.filter(t => {
+        const matchSearch = !search ||
+            t.subject.includes(search) ||
+            t.ticket_number.includes(search) ||
+            (t.submitter_name && t.submitter_name.includes(search));
+        const matchStatus = statusFilter === 'all' || t.status === statusFilter;
+        return matchSearch && matchStatus;
+    });
+
+    const statusCounts = {
+        all: tickets.length,
+        new: tickets.filter(t => t.status === 'new').length,
+        classified: tickets.filter(t => t.status === 'classified').length,
+        routed: tickets.filter(t => t.status === 'routed').length,
+    };
+
+    if (loading) return (
+        <div className="app" style={{display:'flex', justifyContent:'center', paddingTop:100}}>
+            <span className="spinner" style={{width:32, height:32}}></span>
+        </div>
+    );
+
+    return (
+        <div className="app">
+            <div className="header">
+                <h1><span>تذكرة</span> Tazkera</h1>
+                <div className="header-actions">
+                    <button className="btn" onClick={loadTickets}>تحديث</button>
+                    <a href="/docs" target="_blank" className="btn">API Docs</a>
+                </div>
+            </div>
+
+            {/* Odoo Bar */}
+            <div className="odoo-bar">
+                <div className="odoo-status">
+                    <div className={`status-dot ${odooStatus === 'connected' ? 'dot-green' : odooStatus === 'disconnected' ? 'dot-red' : 'dot-gray'}`}></div>
+                    <span>Odoo: {odooStatus === 'connected' ? 'متصل' : odooStatus === 'disconnected' ? 'غير متصل' : 'يتحقق...'}</span>
+                </div>
+                <div style={{display:'flex', gap:8}}>
+                    <button className="btn btn-sm" onClick={syncFromOdoo} disabled={syncing || odooStatus !== 'connected'}>
+                        {syncing ? <><span className="spinner"></span> يسحب...</> : 'سحب من Odoo'}
+                    </button>
+                </div>
+            </div>
+
+            <StatsRow tickets={tickets} />
+
+            {/* Filters */}
+            <div className="filters">
+                {Object.entries(statusCounts).map(([key, count]) => (
+                    <button key={key}
+                        className={`filter-btn ${statusFilter === key ? 'active' : ''}`}
+                        onClick={() => setStatusFilter(key)}>
+                        {key === 'all' ? 'الكل' : statusAr[key]} ({count})
+                    </button>
+                ))}
+            </div>
+
+            {/* Ticket Table */}
+            <div className="ticket-table">
+                <div className="table-header">
+                    <h2>التذاكر ({filtered.length})</h2>
+                    <input className="search-input" placeholder="بحث بالعنوان أو الرقم..."
+                           value={search} onChange={e => setSearch(e.target.value)} />
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الرقم</th>
+                            <th>العنوان</th>
+                            <th>المصدر</th>
+                            <th>الحالة</th>
+                            <th>التاريخ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filtered.slice(0, 50).map(t => (
+                            <tr key={t.id} onClick={() => setSelected(t)}>
+                                <td><span className="ticket-meta">{t.ticket_number}</span></td>
+                                <td><span className="ticket-subject">{t.subject}</span></td>
+                                <td><span className="ticket-meta">{t.source_system}</span></td>
+                                <td><Badge type="status" value={t.status} /></td>
+                                <td><span className="ticket-meta">{new Date(t.created_at).toLocaleDateString('ar-SA')}</span></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                {filtered.length === 0 && (
+                    <div style={{padding:40, textAlign:'center', color:'var(--text-3)'}}>
+                        لا توجد تذاكر مطابقة
+                    </div>
+                )}
+            </div>
+
+            {/* Detail Panel */}
+            {selected && (
+                <DetailPanel
+                    ticket={selected}
+                    onClose={() => setSelected(null)}
+                    onUpdate={loadTickets}
+                />
+            )}
+
+            {/* Toast */}
+            {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

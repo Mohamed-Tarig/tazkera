@@ -1,0 +1,10 @@
+.venv
+venv
+.env
+.env.local
+.env.prod
+.git
+__pycache__
+*.pyc
+appsettings.json
+deploy.zip
