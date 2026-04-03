@@ -1,0 +1,139 @@
+domain:
+  id: it_helpdesk
+  name: IT Helpdesk
+  name_ar: الدعم الفني
+  language: ar
+  timezone: Asia/Riyadh
+
+ticket_fields:
+  category:
+    label_ar: الفئة
+    values:
+      - id: hardware
+        label_ar: أجهزة
+      - id: software
+        label_ar: برمجيات
+      - id: network
+        label_ar: شبكات
+      - id: email
+        label_ar: بريد إلكتروني
+      - id: access
+        label_ar: صلاحيات
+      - id: printer
+        label_ar: طابعات
+      - id: vpn
+        label_ar: VPN
+
+  request_type:
+    label_ar: نوع الطلب
+    values:
+      - id: incident
+        label_ar: عطل
+      - id: service_request
+        label_ar: طلب خدمة
+      - id: inquiry
+        label_ar: استفسار
+      - id: complaint
+        label_ar: شكوى
+
+  urgency:
+    label_ar: مدى التأثير
+    values:
+      - id: single_user
+        label_ar: مستخدم واحد
+      - id: team
+        label_ar: فريق
+      - id: department
+        label_ar: إدارة كاملة
+      - id: company_wide
+        label_ar: الشركة بالكامل
+
+departments:
+  - id: desktop_support
+    label_ar: دعم الأجهزة
+    handles:
+      - incident
+      - service_request
+  - id: network_team
+    label_ar: فريق الشبكات
+    handles:
+      - incident
+  - id: sysadmin
+    label_ar: إدارة الأنظمة
+    handles:
+      - service_request
+      - incident
+  - id: security
+    label_ar: أمن المعلومات
+    handles:
+      - incident
+      - service_request
+  - id: service_desk
+    label_ar: مكتب الخدمة
+    handles:
+      - inquiry
+      - complaint
+
+routing_rules:
+  - condition: "request_type == 'incident' and category == 'network'"
+    department: network_team
+    priority: high
+  - condition: "request_type == 'incident' and category == 'vpn'"
+    department: network_team
+    priority: high
+  - condition: "request_type == 'incident' and category in ('hardware', 'printer')"
+    department: desktop_support
+    priority: medium
+  - condition: "request_type == 'incident' and category == 'email'"
+    department: sysadmin
+    priority: high
+  - condition: "request_type == 'incident' and category == 'software'"
+    department: desktop_support
+    priority: medium
+  - condition: "request_type == 'service_request' and category == 'access'"
+    department: security
+    priority: medium
+  - condition: "request_type == 'service_request'"
+    department: sysadmin
+    priority: low
+  - condition: "request_type == 'inquiry'"
+    department: service_desk
+    priority: low
+  - condition: "request_type == 'complaint'"
+    department: service_desk
+    priority: medium
+
+classification_prompt: |
+  أنت مصنّف تذاكر دعم فني في شركة تقنية.
+  صنّف التذكرة التالية:
+
+  العنوان: {subject}
+  التفاصيل: {description}
+  الفئة: {category}
+  مدى التأثير: {urgency}
+
+  أنواع الطلبات المتاحة: {request_types}
+  الأقسام المتاحة: {departments}
+
+  أرجع JSON فقط:
+  {{
+    "request_type": "...",
+    "department": "...",
+    "priority": "low | medium | high | urgent",
+    "confidence": 0.0-1.0,
+    "reasoning": "شرح مختصر"
+  }}
+
+priorities:
+  - id: low
+    label_ar: منخفضة
+    sla_hours: 48
+  - id: medium
+    label_ar: متوسطة
+    sla_hours: 24
+  - id: high
+    label_ar: عالية
+    sla_hours: 8
+  - id: urgent
+    label_ar: عاجلة
+    sla_hours: 2

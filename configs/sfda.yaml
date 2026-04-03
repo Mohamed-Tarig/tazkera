@@ -78,15 +78,30 @@ routing_rules:
   - condition: "request_type == 'clearance_objection'"
     department: clearance
     priority: high
+  - condition: "request_type == 'review_request'"
+    department: clearance
+    priority: medium
   - condition: "request_type == 'complaint' and product_type == 'drug'"
     department: inspection
     priority: urgent
+  - condition: "request_type == 'complaint' and product_type == 'medical_device'"
+    department: inspection
+    priority: high
   - condition: "request_type == 'complaint' and product_type == 'food'"
     department: consumer_complaints
     priority: high
+  - condition: "request_type == 'complaint' and product_type == 'cosmetics'"
+    department: consumer_complaints
+    priority: medium
+  - condition: "request_type == 'complaint'"
+    department: consumer_complaints
+    priority: medium
   - condition: "request_type == 'inquiry'"
     department: registration
     priority: medium
+  - condition: "request_type == 'meeting_request'"
+    department: registration
+    priority: low
 
 classification_prompt: |
   أنت مصنّف تذاكر لهيئة الغذاء والدواء السعودية.

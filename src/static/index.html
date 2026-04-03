@@ -469,15 +469,27 @@ function App() {
     const [selected, setSelected] = useState(null);
     const [toast, setToast] = useState(null);
     const [odooStatus, setOdooStatus] = useState('checking');
+    const [domain, setDomain] = useState('sfda');
     const [syncing, setSyncing] = useState(false);
+    const [batching, setBatching] = useState(false);
+
+    const batchClassify = async () => {
+        setBatching(true);
+        try {
+            const result = await fetcher(`${API}/tickets/batch-classify?domain=${domain}&limit=50`, { method: 'POST' });
+            setToast(`تم تصنيف ${result.classified} تذكرة من ${result.total}`);
+            loadTickets();
+        } catch (e) { setToast('فشل التصنيف الجماعي'); }
+        setBatching(false);
+    };
 
     const loadTickets = useCallback(async () => {
         try {
-            const data = await fetcher(`${API}/tickets?domain=sfda&limit=100`);
+            const data = await fetcher(`${API}/tickets?domain=${domain}&limit=100`);
             setTickets(data);
         } catch (e) { console.error(e); }
         setLoading(false);
-    }, []);
+    }, [domain]);
 
     const checkOdoo = async () => {
         try {
@@ -486,7 +498,7 @@ function App() {
         } catch { setOdooStatus('disconnected'); }
     };
 
-    useEffect(() => { loadTickets(); checkOdoo(); }, []);
+    useEffect(() => { loadTickets(); checkOdoo(); }, [domain]);
 
     const syncFromOdoo = async () => {
         setSyncing(true);
@@ -524,9 +536,20 @@ function App() {
     return (
         <div className="app">
             <div className="header">
-                <h1><span>تذكرة</span> Tazkera</h1>
+                <div style={{display:'flex', alignItems:'center', gap:16}}>
+                    <h1><span>تذكرة</span> Tazkera</h1>
+                    <select value={domain} onChange={e => { setDomain(e.target.value); setLoading(true); }}
+                            style={{padding:'6px 12px', borderRadius:8, border:'1px solid var(--border)',
+                                    fontFamily:'inherit', fontSize:13, background:'var(--bg-card)'}}>
+                        <option value="sfda">هيئة الغذاء والدواء</option>
+                        <option value="it_helpdesk">الدعم الفني</option>
+                    </select>
+                </div>
                 <div className="header-actions">
                     <button className="btn" onClick={loadTickets}>تحديث</button>
+                    <button className="btn btn-primary" onClick={batchClassify} disabled={batching}>
+                        {batching ? <><span className="spinner"></span> يصنّف...</> : 'تصنيف الكل'}
+                    </button>
                     <a href="/docs" target="_blank" className="btn">API Docs</a>
                 </div>
             </div>

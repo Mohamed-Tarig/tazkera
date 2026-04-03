@@ -1,0 +1,36 @@
+{
+  "total_evaluated": 50,
+  "errors": 0,
+  "type_accuracy": 100.0,
+  "department_accuracy": 64.0,
+  "priority_adequate_pct": 100.0,
+  "average_confidence": 0.95,
+  "average_latency_seconds": 1.43,
+  "per_class": {
+    "meeting_request": {
+      "total": 5,
+      "type_accuracy": 100.0,
+      "dept_accuracy": 100.0
+    },
+    "complaint": {
+      "total": 14,
+      "type_accuracy": 100.0,
+      "dept_accuracy": 57.1
+    },
+    "clearance_objection": {
+      "total": 11,
+      "type_accuracy": 100.0,
+      "dept_accuracy": 100.0
+    },
+    "inquiry": {
+      "total": 13,
+      "type_accuracy": 100.0,
+      "dept_accuracy": 61.5
+    },
+    "review_request": {
+      "total": 7,
+      "type_accuracy": 100.0,
+      "dept_accuracy": 0.0
+    }
+  }
+}

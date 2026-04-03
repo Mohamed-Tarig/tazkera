@@ -216,3 +216,65 @@ async def suggest_response(
             "similar_tickets": similar_tickets,
         },
     }
+
+@router.post("/tickets/batch-classify")
+async def batch_classify(
+    domain: str = Query(default="sfda"),
+    limit: int = Query(default=50, le=200),
+    session: AsyncSession = Depends(get_session),
+):
+    """Classify all unclassified tickets in a domain."""
+    from src.models.ticket import TicketClassification
+    from src.workflows.intake import intake_graph
+
+    # Get unclassified tickets
+    result = await session.execute(
+        select(Ticket)
+        .where(Ticket.domain_id == domain, Ticket.status == "new")
+        .limit(limit)
+    )
+    tickets = result.scalars().all()
+
+    results = {"total": len(tickets), "classified": 0, "failed": 0, "details": []}
+
+    for ticket in tickets:
+        try:
+            output = intake_graph.invoke({
+                "ticket_id": str(ticket.id),
+                "domain_id": ticket.domain_id,
+                "subject": ticket.subject,
+                "description": ticket.description,
+                "custom_fields": ticket.custom_fields or {},
+                "classification": {},
+                "status": "",
+                "error": "",
+            })
+
+            if output["status"] == "routed":
+                cls = output["classification"]
+                classification = TicketClassification(
+                    ticket_id=ticket.id,
+                    domain_id=ticket.domain_id,
+                    predicted_type=cls["request_type"],
+                    predicted_department=cls["department"],
+                    predicted_priority=cls["priority"],
+                    confidence_score=cls["confidence"],
+                    reasoning=cls.get("reasoning"),
+                    model_version=cls.get("model_version", "unknown"),
+                )
+                session.add(classification)
+                ticket.status = "classified"
+                results["classified"] += 1
+                results["details"].append({
+                    "ticket_number": ticket.ticket_number,
+                    "type": cls["request_type"],
+                    "department": cls["department"],
+                    "priority": cls["priority"],
+                })
+            else:
+                results["failed"] += 1
+        except Exception as e:
+            results["failed"] += 1
+
+    await session.commit()
+    return results
