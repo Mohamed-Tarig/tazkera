@@ -3,6 +3,8 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.local
+.env.prod
 *.egg-info/
 dist/
 .ruff_cache/
@@ -12,3 +14,8 @@ dist/
 .vscode/
 *.swp
 *.swo
+appsettings.json
+deploy.zip
+startup.txt
+.deployment
+tazkera.egg-info/
