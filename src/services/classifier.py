@@ -33,15 +33,28 @@ def classify_ticket(
     )
     departments = ", ".join(d.id for d in config.departments)
 
-    # Fill the prompt template from the domain config
-    prompt = config.classification_prompt.format(
-        subject=subject,
-        description=description,
-        establishment_type=custom_fields.get("establishment_type", "غير محدد"),
-        product_type=custom_fields.get("product_type", "غير محدد"),
-        request_types=request_types,
-        departments=departments,
-    )
+    # Build prompt variables dynamically from custom_fields + standard fields
+    prompt_vars = {
+        "subject": subject,
+        "description": description,
+        "request_types": request_types,
+        "departments": departments,
+    }
+    # Add all custom fields as available prompt variables
+    for key, value in custom_fields.items():
+        prompt_vars[key] = value
+
+    # Fill the prompt template, ignoring missing placeholders
+    try:
+        prompt = config.classification_prompt.format(**prompt_vars)
+    except KeyError as e:
+        # If a placeholder in the prompt has no matching field, set it to "غير محدد"
+        import re
+        placeholders = re.findall(r'\{(\w+)\}', config.classification_prompt)
+        for ph in placeholders:
+            if ph not in prompt_vars:
+                prompt_vars[ph] = "غير محدد"
+        prompt = config.classification_prompt.format(**prompt_vars)
 
     logger.info(f"Classifying ticket: {subject[:50]}...")
 
