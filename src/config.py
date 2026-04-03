@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     azure_openai_embedding_endpoint: str = ""
     azure_openai_embedding_key: str = ""
 
+    # Odoo
+    odoo_url: str = ""
+    odoo_db: str = ""
+    odoo_username: str = ""
+    odoo_password: str = ""
+    odoo_project_name: str = "SFDA Tickets"
+
     # App
     domain_config: str = "sfda"
     log_level: str = "INFO"
